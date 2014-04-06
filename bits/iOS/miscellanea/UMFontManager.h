@@ -123,7 +123,7 @@
 //  ------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// UIFont extension category
-@interface UIFont (MBExtensions)
+@interface UIFont (UMTouchUIFontAdditions)
 
 /// finds the italic typeface of font based on the given one
 /// @param ifont used as a base font

@@ -760,7 +760,7 @@ static void __attribute__((destructor)) __finalize()
 //  ------------------------------------------------------------------------------------------------------------------------------------------------
 //  UIFont extension category methods which utilize UMFontManager
 
-@implementation UIFont (MBExtensions)
+@implementation UIFont (UMTouchUIFontAdditions)
 
 /// finds the italic typeface of font based on the given one
 /// @param ifont used as a base font

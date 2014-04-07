@@ -4,6 +4,7 @@ syntax: glob
 
 *.elc
 *.pyc
+*.pyo
 *~
 build
 *.mode1v3

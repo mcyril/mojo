@@ -1,0 +1,45 @@
+Xcode project proofing tool
+------------------------------------------------------------------------------------------
+* aimed to analyze Xcode project and sources for integrity and the image and localized
+  strings usage.
+------------------------------------------------------------------------------------------
+* performs three passes:
+
+- integrity check pass (always enabled, running first)
+    verify existence of project files (useful as foolproof of commits)
+- images analysis pass (optional, enable with -i option)
+    collect information on used images (for all images from project)
+    shows possible orphaned images
+    shows possible missing images
+- localized strings analysis pass (optional, enable with -s option)
+    collect information on used localized strings
+    shows possible orphaned strings
+    shows possible missing strings
+    shows missing localized strings of certain language
+------------------------------------------------------------------------------------------
+* use
+
+ $ xcproof -h
+
+for usage help and command line options for pass tweakings
+------------------------------------------------------------------------------------------
+* for the braves
+
+it's possible to use libclang to enhance quality of localized strings analysis pass
+
+how to
+
+- install and build clang from http://llvm.org
+  see http://clang.llvm.org/get_started.html for more info
+- set PYTHONPATH variable to allow Python to use libclang bindings:
+
+  $ export PYTHONPATH=<path to your llvm>/llvm/tools/clang/bindings/python
+
+- now you can use --sclang option with strings analysis pass
+- or just run script as follow:
+
+  $ PYTHONPATH=<path to your llvm>/llvm/tools/clang/bindings/python python xcproof --sclang <..arguments...>
+
+------------------------------------------------------------------------------------------
+* have an idea which analysis pass is missing or should be enhanced?
+  contact Unreal Mojo hello@unrealmojo.com

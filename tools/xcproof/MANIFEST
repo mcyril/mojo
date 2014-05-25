@@ -1,7 +1,7 @@
 [build]
 mainmodule=xcproof
 mainmodule_path=src/xcproof.py
-modules=pbx,verify,plist,asplist,biplist,orderedset
+modules=pbx,verify,plist,asplist,biplist,orderedset,clang
 
 [pbx]
 path=src/pbx
@@ -20,3 +20,6 @@ path=src/plist
 
 [orderedset]
 path=src/orderedset
+
+[clang]
+path=src/clang

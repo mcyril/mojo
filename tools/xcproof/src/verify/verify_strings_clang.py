@@ -1,4 +1,4 @@
-# 2012, 2013 (c) Unreal Mojo
+# 2012-2014 (c) Unreal Mojo
 # by Cyril Murzin
 
 from pbx import pbx
@@ -8,6 +8,9 @@ import os
 import sys
 import re
 import codecs
+import subprocess
+
+from clang.cindex import *
 
 # ========================================================================================
 
@@ -22,7 +25,6 @@ class verify_strings_clang(verify_strings.verify_strings):
 
 		verify_strings.verify_strings.__init__(self, project)
 
-		self.cmodule = None
 		self.cindex = None
 
 #-----------------------------------------------------------------------------------------
@@ -34,7 +36,7 @@ class verify_strings_clang(verify_strings.verify_strings):
 
 		for token in arguments:
 			if st == self.stIDLE:
-				if token.kind == self.cmodule.TokenKind.PUNCTUATION:
+				if token.kind == TokenKind.PUNCTUATION:
 					if len(brackets) > 0 and brackets[-1] == token.spelling:
 						del brackets[-1]
 					elif token.spelling == '(':
@@ -48,7 +50,7 @@ class verify_strings_clang(verify_strings.verify_strings):
 							break
 
 			elif st == self.stSTRING:
-				if token.kind == self.cmodule.TokenKind.LITERAL:
+				if token.kind == TokenKind.LITERAL:
 					self._postprocess_string(token.spelling[1:-1], self.__source, self.__nline)
 					st = self.stIDLE
 				else:
@@ -63,7 +65,7 @@ class verify_strings_clang(verify_strings.verify_strings):
 
 		for token in node.get_tokens():
 			if st == self.stIDLE:
-				if token.kind == self.cmodule.TokenKind.IDENTIFIER:
+				if token.kind == TokenKind.IDENTIFIER:
 					for pattern in self.__patterns:
 						got = pattern.findall(token.spelling)
 						if len(got) > 0:
@@ -72,7 +74,7 @@ class verify_strings_clang(verify_strings.verify_strings):
 							break
 
 			elif st == self.stLOCALIZER:
-				if token.kind == self.cmodule.TokenKind.PUNCTUATION:
+				if token.kind == TokenKind.PUNCTUATION:
 					if token.spelling == '(':
 						brackets = [')']
 						arguments = []
@@ -83,7 +85,7 @@ class verify_strings_clang(verify_strings.verify_strings):
 					st = self.stIDLE
 
 			elif st == self.stARGUMENTS:
-				if token.kind == self.cmodule.TokenKind.PUNCTUATION:
+				if token.kind == TokenKind.PUNCTUATION:
 					if brackets[-1] == token.spelling:
 						del brackets[-1]
 						if len(brackets) == 0:
@@ -107,9 +109,9 @@ class verify_strings_clang(verify_strings.verify_strings):
 				except:
 					continue
 
-				if kind == self.cmodule.CursorKind.OBJC_CLASS_METHOD_DECL:
+				if kind == CursorKind.OBJC_CLASS_METHOD_DECL:
 					self.__iterate_method(child)
-				elif kind == self.cmodule.CursorKind.OBJC_INSTANCE_METHOD_DECL:
+				elif kind == CursorKind.OBJC_INSTANCE_METHOD_DECL:
 					self.__iterate_method(child)
 
 
@@ -123,10 +125,10 @@ class verify_strings_clang(verify_strings.verify_strings):
 			except:
 				continue
 
-			if kind == self.cmodule.CursorKind.OBJC_IMPLEMENTATION_DECL:
+			if kind == CursorKind.OBJC_IMPLEMENTATION_DECL:
 				self.__iterate_impl(child)
 				deeper = False
-			elif kind == self.cmodule.CursorKind.OBJC_CATEGORY_IMPL_DECL:
+			elif kind == CursorKind.OBJC_CATEGORY_IMPL_DECL:
 				self.__iterate_impl(child)
 				deeper = False
 			elif deeper:
@@ -158,15 +160,22 @@ def verify(project, verbose = 0, localizers = None, usage = False, notlocalized 
 		callback.localizers = localizers
 
 	try:
-		import clang.cindex
-		callback.cmodule = clang.cindex
-		callback.cindex = clang.cindex.Index.create()
+		clang_path = subprocess.check_output(["/usr/bin/xcode-select", "--print-path"]).strip() + "/Toolchains/XcodeDefault.xctoolchain/usr/lib"
+		Config.set_library_path(clang_path)
+
+		callback.cindex = Index.create()
+
+	except LibclangError, e:
+		print "**************************** CLANG LIBRARY PROBLEM ****************************"
+		print str(e)
+		print "*******************************************************************************"
+
+		sys.exit(1)
 
 	except:
-		print "************* NO CLANG LIBRARY AND/OR ITS BINDINGS IN $PYTHONPATH *************"
+		print "**************************** NO CLANG LIBRARY FOUND ***************************"
 		print "*                                                                             *"
-		print "* Install clang python bindings, libclang and do something like:              *"
-		print "*    export PYTHONPATH=<path to your llvm>/llvm/tools/clang/bindings/python   *"
+		print "*   Requires installed Apple DevTools (basically Xcode) with libclang.dylib   *"
 		print "*                                                                             *"
 		print "*******************************************************************************"
 
@@ -174,6 +183,8 @@ def verify(project, verbose = 0, localizers = None, usage = False, notlocalized 
 
 	try:
 		project.process(callback)
+	except LibclangError, e:
+		raise Exception(str(e))
 	except:
 		raise Exception("CLUSTERFUCK[strings clang]")
 

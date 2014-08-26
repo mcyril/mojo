@@ -172,8 +172,8 @@ class verify_images(verify_base.verify_base):
 
 		for xib in self.xibs:
 			xibdoc = minidom.parse(xib['path'])
+			
 			xibstrings = xibdoc.getElementsByTagName("string")
-
 			for xibstring in xibstrings:
 				if xibstring.hasAttribute("key") and xibstring.attributes['key'].value == "NSResourceName":
 					children = xibstring.childNodes
@@ -181,6 +181,12 @@ class verify_images(verify_base.verify_base):
 						if children[0].nodeValue.endswith(self.extension):
 							self._postprocess_image(children[0].nodeValue[:-4], True, xib)
 
+			xibimages = xibdoc.getElementsByTagName("image")
+			for xibimage in xibimages:
+				if xibimage.hasAttribute("name"):
+					if xibimage.attributes['name'].value.endswith(self.extension):
+						self._postprocess_image(xibimage.attributes['name'].value[:-4], True, xib)
+			
 
 	def _postprocess_plist_item(self, item, plist):
 		if hasattr(item, "iteritems"):

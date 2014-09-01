@@ -47,6 +47,9 @@
 //  ------------------------------------------------------------------------------------------------------------------------------------------------
 //  *** forward declarations, globals and typedefs
 
+/// I remember the times when font editors created bullshit instead of real traits and the idea to check the slant angle wasn't bad (assume it's optional in XXI century)
+#define _UM_FONTMGR_CONSIDER_SLANT  0
+
 /// 'head' table as per Microsoft TTF specification
 struct _ttf_table_head
 {
@@ -150,7 +153,9 @@ typedef enum _tx_traits tx_traits_t;
     tx_traits_t         _traits;
 
     uint16_t            _usWeightClass;
+#if _UM_FONTMGR_CONSIDER_SLANT
     BOOL                _slanted;
+#endif
 
 @private
     NSString*           _fontName;
@@ -173,7 +178,9 @@ typedef enum _tx_traits tx_traits_t;
         _traits = tx_style_plain;
 
         _usWeightClass = FW_NORMAL;
+#if _UM_FONTMGR_CONSIDER_SLANT
         _slanted = NO;
+#endif
     }
 
     return self;
@@ -192,7 +199,11 @@ typedef enum _tx_traits tx_traits_t;
 {
 static NSString* const _sStyles[] = { @"plain", @"bold", @"italic", @"bold-italic" };
 
+#if _UM_FONTMGR_CONSIDER_SLANT
     return [NSString stringWithFormat:@"%@: %@, %i, %i", _fontName, _traits <= tx_style_bolditalic ? _sStyles[_traits] : [NSNumber numberWithInt:_traits], _usWeightClass, _slanted];
+#else
+    return [NSString stringWithFormat:@"%@: %@, %i", _fontName, _traits <= tx_style_bolditalic ? _sStyles[_traits] : [NSNumber numberWithInt:_traits], _usWeightClass];
+#endif
 }
 
 #pragma mark -
@@ -248,11 +259,11 @@ typedef struct _manager_pvt manager_pvt_t;
 //  private interface
 
 @interface UMFontManager ()
-- (UMFontManagerFontTraits*)collectPoolRecord:(NSString*)fontName;
-- (UMFontManagerFontTraits*)fontPoolRecord:(NSString*)fontName;
+- (UMFontManagerFontTraits*)_collectPoolRecord:(NSString*)fontName;
+- (UMFontManagerFontTraits*)_fontPoolRecord:(NSString*)fontName;
 
-- (NSDictionary*)collectFamilyPool:(NSString*)familyName;
-- (NSDictionary*)familyPool:(NSString*)familyName;
+- (NSDictionary*)_collectFamilyPool:(NSString*)familyName;
+- (NSDictionary*)_familyPool:(NSString*)familyName;
 @end
 
 //  ------------------------------------------------------------------------------------------------------------------------------------------------
@@ -328,9 +339,9 @@ typedef struct _manager_pvt manager_pvt_t;
 /// create family pool record for certain font name
 /// @param fontName the name of font
 /// @return typeface traits
-/// @discussion creates pool record on demand with collectPoolRecord: method
+/// @discussion creates pool record on demand with _collectPoolRecord: method
 
-- (UMFontManagerFontTraits*)collectPoolRecord:(NSString*)fontName
+- (UMFontManagerFontTraits*)_collectPoolRecord:(NSString*)fontName
 {
     UMFontManagerFontTraits* entity = [[[UMFontManagerFontTraits alloc] init] autorelease];
 
@@ -366,9 +377,13 @@ typedef struct _manager_pvt manager_pvt_t;
                 CFRelease(ttfOS2Table);
             }
 
+        // italic hint
+
+#if _UM_FONTMGR_CONSIDER_SLANT
             CGFloat slant = CTFontGetSlantAngle(font);
 
             entity->_slanted = (fabsf(slant) > .0);
+#endif
 
             CFRelease(font);
         }
@@ -381,6 +396,8 @@ typedef struct _manager_pvt manager_pvt_t;
 
     legacy_way:;
 
+    // collect regular traits
+
         if ([fontName rangeOfString:@"bold" options:NSCaseInsensitiveSearch].length > 0 ||
             [fontName rangeOfString:@"black" options:NSCaseInsensitiveSearch].length > 0)
             entity->_traits |= tx_style_bold;
@@ -391,6 +408,32 @@ typedef struct _manager_pvt manager_pvt_t;
             entity->_traits |= tx_style_condensed;
         if ([fontName rangeOfString:@"expanded" options:NSCaseInsensitiveSearch].length > 0)
             entity->_traits |= tx_style_expanded;
+
+    // collect weight
+
+        CGFontRef font = CGFontCreateWithFontName((CFStringRef)fontName);
+        if (font != NULL)
+        {
+            CFDataRef ttfOS2Table = CGFontCopyTableForTag(font, os2FontTableTag);
+            if (ttfOS2Table != NULL)
+            {
+                ttf_table_os2_t* os2table = (ttf_table_os2_t*)CFDataGetBytePtr(ttfOS2Table);
+
+                entity->_usWeightClass = OSSwapBigToHostInt16(os2table->usWeightClass);
+
+                CFRelease(ttfOS2Table);
+            }
+
+    // italic hint
+
+#if _UM_FONTMGR_CONSIDER_SLANT
+            CGFloat slant = CGFontGetItalicAngle(font);
+
+            entity->_slanted = (fabsf(slant) > .0);
+#endif
+
+            CGFontRelease(font);
+        }
     }
 
     entity.fontName = fontName;
@@ -401,16 +444,16 @@ typedef struct _manager_pvt manager_pvt_t;
 /// retrieve family pool record for certain font name
 /// @param fontName the name of font
 /// @return typeface traits
-/// @discussion creates pool record on demand with collectPoolRecord: method
+/// @discussion creates pool record on demand with _collectPoolRecord: method
 
-- (UMFontManagerFontTraits*)fontPoolRecord:(NSString*)fontName
+- (UMFontManagerFontTraits*)_fontPoolRecord:(NSString*)fontName
 {
     @synchronized(_private->fonts_pool)
     {
         UMFontManagerFontTraits* entity = [_private->fonts_pool objectForKey:fontName];
         if (entity == nil)
         {
-            entity = [self collectPoolRecord:fontName];
+            entity = [self _collectPoolRecord:fontName];
 
             [_private->fonts_pool setObject:entity forKey:fontName];
         }
@@ -423,27 +466,27 @@ typedef struct _manager_pvt manager_pvt_t;
 /// @param familyName the name of font family
 /// @return collection of typefaces' traits which belong to family
 
-- (NSDictionary*)collectFamilyPool:(NSString*)familyName
+- (NSDictionary*)_collectFamilyPool:(NSString*)familyName
 {
     NSMutableDictionary* familyPool = [NSMutableDictionary dictionaryWithCapacity:0];
 
     NSArray* fontNames = [UIFont fontNamesForFamilyName:familyName];
     for (NSString* fontName in fontNames)
     {
-        [familyPool setObject:[self fontPoolRecord:fontName] forKey:fontName];
+        [familyPool setObject:[self _fontPoolRecord:fontName] forKey:fontName];
     }
 
     // do not propagate empty dictionary, it could happen if font family is synthesized
-    // despite familyPool: should care of it, let's just to be on the safe side
+    // despite _familyPool: should care of it, let's just to be on the safe side
     return [familyPool count] > 0 ? familyPool : nil;
 }
 
 /// retrieve family pool for certain family name
 /// @param familyName the name of font family
 /// @return collection of typefaces' traits which belong to family
-/// @discussion creates pool on demand with collectFamilyPool: method
+/// @discussion creates pool on demand with _collectFamilyPool: method
 
-- (NSDictionary*)familyPool:(NSString*)familyName
+- (NSDictionary*)_familyPool:(NSString*)familyName
 {
     @synchronized(_private->families_pool)
     {
@@ -499,12 +542,12 @@ typedef struct _manager_pvt manager_pvt_t;
             }
             else
             {
-            // stright case, deal with desired family name
+            // straight case, deal with desired family name
 
                 actualFamilyName = familyName;
             }
 
-            familyPool = [self collectFamilyPool:actualFamilyName];
+            familyPool = [self _collectFamilyPool:actualFamilyName];
             if (familyPool == nil)
             {
             // impossible to collect any information on desired family name, so register fake fallback for further bypassing
@@ -542,10 +585,11 @@ typedef struct _manager_pvt manager_pvt_t;
 
     if (font != nil)
     {
-        UMFontManagerFontTraits* originalEntity = [self fontPoolRecord:ifont.fontName];
+        UMFontManagerFontTraits* originalEntity = [self _fontPoolRecord:ifont.fontName];
         if (originalEntity != nil)
         {
-            tx_traits_t wanted_traits = originalEntity->_traits | tx_style_italic;
+            tx_traits_t original_traits = originalEntity->_traits;
+            tx_traits_t wanted_traits = original_traits | tx_style_italic;
 
             if (wanted_traits == originalEntity->_traits)
             {
@@ -554,7 +598,16 @@ typedef struct _manager_pvt manager_pvt_t;
                 return font;
             }
 
-            __block NSDictionary* familyPool = [self familyPool:ifont.familyName];
+#if _UM_FONTMGR_CONSIDER_SLANT
+            if (originalEntity->_slanted)
+            {
+            // slanted? don't fool with me!
+
+                return font;
+            }
+#endif
+
+            __block NSDictionary* familyPool = [self _familyPool:ifont.familyName];
             if (familyPool != nil)
             {
                 NSArray* sortedKeys = [[familyPool allKeys] sortedArrayUsingComparator:^NSComparisonResult(NSString* nam1, NSString* nam2)
@@ -589,7 +642,12 @@ typedef struct _manager_pvt manager_pvt_t;
                     {
                         UMFontManagerFontTraits* entity = [familyPool objectForKey:[sortedKeys objectAtIndex:index]];
 
-                        if (entity->_traits == wanted_traits && entity->_usWeightClass == originalEntity->_usWeightClass)
+#if _UM_FONTMGR_CONSIDER_SLANT
+                        BOOL ok = (((entity->_traits == wanted_traits) || (entity->_traits == original_traits && entity->_slanted)) && entity->_usWeightClass == originalEntity->_usWeightClass);
+#else
+                        BOOL ok = (entity->_traits == wanted_traits && entity->_usWeightClass == originalEntity->_usWeightClass);
+#endif
+                        if (ok)
                         {
                             first_italic = index;
                             break;
@@ -619,7 +677,12 @@ typedef struct _manager_pvt manager_pvt_t;
 
                             UMFontManagerFontTraits* entity = [familyPool objectForKey:[sortedKeys objectAtIndex:index]];
 
-                            if (entity->_traits == wanted_traits && entity->_usWeightClass < originalEntity->_usWeightClass)
+#if _UM_FONTMGR_CONSIDER_SLANT
+                            BOOL ok = (((entity->_traits == wanted_traits) || (entity->_traits == original_traits && entity->_slanted)) && entity->_usWeightClass < originalEntity->_usWeightClass);
+#else
+                            BOOL ok = (entity->_traits == wanted_traits && entity->_usWeightClass < originalEntity->_usWeightClass);
+#endif
+                            if (ok)
                             {
                                 first_italic = index;
                                 break;
@@ -658,10 +721,10 @@ typedef struct _manager_pvt manager_pvt_t;
 
     if (font != nil)
     {
-        UMFontManagerFontTraits* originalEntity = [self fontPoolRecord:ifont.fontName];
+        UMFontManagerFontTraits* originalEntity = [self _fontPoolRecord:ifont.fontName];
         if (originalEntity != nil)
         {
-            __block NSDictionary* familyPool = [self familyPool:ifont.familyName];
+            __block NSDictionary* familyPool = [self _familyPool:ifont.familyName];
             if (familyPool != nil)
             {
                 NSArray* sortedKeys = [[familyPool allKeys] sortedArrayUsingComparator:^NSComparisonResult(NSString* nam1, NSString* nam2)

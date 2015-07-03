@@ -345,56 +345,49 @@ typedef struct _manager_pvt manager_pvt_t;
 {
     UMFontManagerFontTraits* entity = [[[UMFontManagerFontTraits alloc] init] autorelease];
 
-    if (CTFontCreateWithName != NULL)
+    CTFontRef font = CTFontCreateWithName((CFStringRef)fontName, .0, NULL);
+    if (font != NULL)
     {
-        CTFontRef font = CTFontCreateWithName((CFStringRef)fontName, .0, NULL);
-        if (font != NULL)
+    // deal with CoreText information
+
+    // collect regular traits
+
+        CTFontSymbolicTraits symTraits = CTFontGetSymbolicTraits(font);
+
+        if ((symTraits & kCTFontTraitBold) != 0)
+            entity->_traits |= tx_style_bold;
+        if ((symTraits & kCTFontTraitItalic) != 0)
+            entity->_traits |= tx_style_italic;
+        if ((symTraits & kCTFontTraitCondensed) != 0)   //  adding of condensed traits will exclude this styles from findings; TODO: some fallback for them though?
+            entity->_traits |= tx_style_condensed;
+        if ((symTraits & kCTFontTraitExpanded) != 0)    //  adding of expanded traits will exclude this styles from findings; TODO: some fallback for them though?
+            entity->_traits |= tx_style_expanded;
+
+    // collect weight
+
+        CFDataRef ttfOS2Table = CTFontCopyTable(font, kCTFontTableOS2, kCTFontTableOptionNoOptions);
+        if (ttfOS2Table != NULL)
         {
-        // deal with CoreText information
+            ttf_table_os2_t* os2table = (ttf_table_os2_t*)CFDataGetBytePtr(ttfOS2Table);
 
-        // collect regular traits
+            entity->_usWeightClass = OSSwapBigToHostInt16(os2table->usWeightClass);
 
-            CTFontSymbolicTraits symTraits = CTFontGetSymbolicTraits(font);
+            CFRelease(ttfOS2Table);
+        }
 
-            if ((symTraits & kCTFontTraitBold) != 0)
-                entity->_traits |= tx_style_bold;
-            if ((symTraits & kCTFontTraitItalic) != 0)
-                entity->_traits |= tx_style_italic;
-            if ((symTraits & kCTFontTraitCondensed) != 0)   //  adding of condensed traits will exclude this styles from findings; TODO: some fallback for them though?
-                entity->_traits |= tx_style_condensed;
-            if ((symTraits & kCTFontTraitExpanded) != 0)    //  adding of expanded traits will exclude this styles from findings; TODO: some fallback for them though?
-                entity->_traits |= tx_style_expanded;
-
-        // collect weight
-
-            CFDataRef ttfOS2Table = CTFontCopyTable(font, kCTFontTableOS2, kCTFontTableOptionNoOptions);
-            if (ttfOS2Table != NULL)
-            {
-                ttf_table_os2_t* os2table = (ttf_table_os2_t*)CFDataGetBytePtr(ttfOS2Table);
-
-                entity->_usWeightClass = OSSwapBigToHostInt16(os2table->usWeightClass);
-
-                CFRelease(ttfOS2Table);
-            }
-
-        // italic hint
+    // italic hint
 
 #if _UM_FONTMGR_CONSIDER_SLANT
-            CGFloat slant = CTFontGetSlantAngle(font);
+        CGFloat slant = CTFontGetSlantAngle(font);
 
-            entity->_slanted = (fabsf(slant) > .0);
+        entity->_slanted = (fabsf(slant) > .0);
 #endif
 
-            CFRelease(font);
-        }
-        else
-            goto legacy_way;
+        CFRelease(font);
     }
     else
     {
     // guess with name
-
-    legacy_way:;
 
     // collect regular traits
 

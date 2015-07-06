@@ -132,10 +132,10 @@ def main():
 
 			pbxproj = None
 
- 			fin = None
+			fin = None
 
 			try:
- 				pbxproj = plistReader(path + "/project.pbxproj").read()
+				pbxproj = plistReader(path + "/project.pbxproj").read()
 				if pbxproj == None:
 					raise Exception("corrupted project")
 

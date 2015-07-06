@@ -3,7 +3,7 @@
 /// @project UnrealKit (approval pending)
 /// @author Cyril Murzin
 /// @copyright (c) 2014 Unreal Mojo LLC. All rights reserved.
-/// @copyright (c) 2011-2014 Ravel Developer Group (Cyril Murzin). All rights reserved.
+/// @copyright (c) 2011-2014 Ravel Developers Group (Cyril Murzin). All rights reserved.
 //  ------------------------------------------------------------------------------------------------------------------------------------------------
 //  ------------------------------------------------------------------------------------------------------------------------------------------------
 //     __      __  ___ ___ _____.___._________
@@ -64,7 +64,7 @@
 //  The MIT License (MIT)
 //
 //  Copyright (c) 2014 Unreal Mojo LLC
-//  Copyright (c) 2011-2014 Ravel Developer Group (Cyril Murzin)
+//  Copyright (c) 2011-2014 Ravel Developers Group (Cyril Murzin)
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy of
 //  this software and associated documentation files (the "Software"), to deal in

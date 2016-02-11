@@ -1,14 +1,22 @@
-# 2012-2014 (c) Unreal Mojo
+# 2012-2016 (c) Unreal Mojo
 # by Cyril Murzin
 
+import sys
 import re
 
 # ========================================================================================
 
-SKIP	= 0
-OK		= 1
-FAIL	= 2
-FOLDER	= 10
+STATE_SKIP		= 0
+STATE_OK		= 1
+STATE_FAIL		= 2
+STATE_FOLDER	= 10
+
+PROGRESS_INIT	= 0
+PROGRESS_STEP	= 1
+PROGRESS_INCS	= 2
+PROGRESS_DONE	= 3
+
+PROGRESS		= ["-", "\\", "|", "/"]
 
 # ========================================================================================
 
@@ -17,6 +25,8 @@ class verify_base(object):
 	def __init__(self, project):
 		self.project = project
 		self.verbose = 0
+		self.progress_value = 0
+		self.progress_total = 0
 
 		self.__WILDCARDS_CACHE_SIZE = 256
 		self.__wildcards_cache = {}
@@ -34,17 +44,52 @@ class verify_base(object):
 		return True
 
 	#
+	# show progress
+	#
+	def progress(self, state, value):
+		draw = False
+		if state == PROGRESS_INIT:
+			self.progress_value = -1
+			self.progress_total = value
+		elif state == PROGRESS_STEP:
+			if value >= self.progress_total:
+				self.progress_value = self.progress_total - 1
+			else:
+				self.progress_value = value
+			draw = True
+		elif state == PROGRESS_INCS:
+			if self.progress_value + value < self.progress_total:
+				self.progress_value += value
+			draw = True
+		elif state == PROGRESS_DONE:
+			print '\r', ' ' * 80, '\r',
+			sys.stdout.flush()
+
+		if draw:
+			value = self.progress_value * 77 / self.progress_total
+			total = 77
+
+			done = '#' * (value + 1)
+			todo = '.' * (total - value - 1)
+
+			s = '[{0}] '.format(done + todo)
+			s = '\r' + s + PROGRESS[self.progress_value % 4] + ' '
+
+			print s,
+			sys.stdout.flush()
+
+	#
 	# log progress
 	#
 	def log(self, name, fullpath, level, stcode):
 
-		if stcode == SKIP:
+		if stcode == STATE_SKIP:
 			status = ""
-		elif stcode == OK:
+		elif stcode == STATE_OK:
 			status = ""
-		elif stcode == FAIL:
+		elif stcode == STATE_FAIL:
 			status = " *FAIL*"
-		elif stcode == FOLDER:
+		elif stcode == STATE_FOLDER:
 			status = " \\"
 		else:
 			status = ""

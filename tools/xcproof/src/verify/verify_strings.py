@@ -1,4 +1,4 @@
-# 2012-2014 (c) Unreal Mojo
+# 2012-2016 (c) Unreal Mojo
 # by Cyril Murzin
 
 from pbx import pbx
@@ -223,6 +223,7 @@ class verify_strings(verify_base.verify_base):
 			patterns += [re.compile(localizer + tail)]
 
 		for source in self.sources:
+			verify_base.verify_base.progress(self, verify_base.PROGRESS_INCS, 1)
 			fin = codecs.open(source['path'], "rU", encoding = pbx._pbx_file_encoding(source))
 			try:
 				nline = 1
@@ -284,7 +285,7 @@ class verify_strings(verify_base.verify_base):
 		if len(self.__localized) > 0:
 
 			print "Strings files marked as localized in project"
-			print "-------------------------------------------------------------------------------"
+			print '-' * 79
 
 			for key in sorted(self.__localized):
 				localized = self.__localized[key]
@@ -322,9 +323,9 @@ class verify_strings(verify_base.verify_base):
 		if len(self.__singlets) > 0:
 
 			if self.showusage or len(self.__localized) > 0:
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 			print "Strings files in project with no defined language(s)"
-			print "-------------------------------------------------------------------------------"
+			print '-' * 79
 
 			for key in sorted(self.__singlets):
 				print key
@@ -335,12 +336,16 @@ class verify_strings(verify_base.verify_base):
 
 		self.__missings = {}
 
+		verify_base.verify_base.progress(self, verify_base.PROGRESS_INIT, len(self.sources))
+
 		# search for potential localized strings in sources
 		self._analyze_sources()
 
+		verify_base.verify_base.progress(self, verify_base.PROGRESS_DONE, 0)
+
 		if self.showusage and len(self.__stringsmap) > 0:
 			if len(self.__localized) > 0 or len(self.__singlets) > 0:
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 			print "[PROBABLY] Usage of strings statistics"
 
 		orphanes = {}
@@ -348,7 +353,7 @@ class verify_strings(verify_base.verify_base):
 		# process statistics
 		for locstrings in sorted(self.__stringsmap):
 			if self.showusage:
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 				print locstrings
 
 			strstates = self.__stringsmap[locstrings]
@@ -379,11 +384,11 @@ class verify_strings(verify_base.verify_base):
 		if norphans > 0:
 
 			if self.showusage or len(self.__localized) > 0 or len(self.__singlets) > 0:
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 			print "[PROBABLY] Orphan strings"
 
 			for locstrings in sorted(orphanes):
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 				print locstrings
 
 				for key in sorted(orphanes[locstrings]):
@@ -392,9 +397,9 @@ class verify_strings(verify_base.verify_base):
 		if len(self.__missings) > 0:
 
 			if self.showusage or norphans > 0 or len(self.__localized) > 0 or len(self.__singlets) > 0:
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 			print "[PROBABLY] Missing strings"
-			print "-------------------------------------------------------------------------------"
+			print '-' * 79
 
 			for mkey in sorted(self.__missings):
 				print "    '%s'" % mkey

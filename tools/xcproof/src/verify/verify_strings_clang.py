@@ -1,4 +1,4 @@
-# 2012-2014 (c) Unreal Mojo
+# 2012-2016 (c) Unreal Mojo
 # by Cyril Murzin
 
 from pbx import pbx
@@ -142,6 +142,7 @@ class verify_strings_clang(verify_strings.verify_strings):
 			self.__patterns += [re.compile(localizer)]
 
 		for source in self.sources:
+			verify_strings.verify_strings.progress(self, verify_strings.verify_base.PROGRESS_INCS, 1)
 			self.__source = source
 			tu = self.cindex.parse(None, [source['path'], "-fsyntax-only"], options = 0)
 

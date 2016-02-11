@@ -1,6 +1,6 @@
 #!/usr/bin/python -O -OO
 
-# 2012-2014 (c) Unreal Mojo
+# 2012-2016 (c) Unreal Mojo
 # by Cyril Murzin
 
 import os
@@ -15,14 +15,14 @@ from verify import verify_strings_clang
 
 from plist import plistReader
 
-CXPROOF_VERSION = "0.0.4"
+CXPROOF_VERSION = "0.0.5"
 
 # ========================================================================================
 
 def usage():
 	print " ----------------------------------------------------------------------------------"
 	print " XCode project PROOFing tool v%s" % CXPROOF_VERSION
-	print "   Copyright 2012-2014 (c) Unreal Mojo, by Cyril Murzin"
+	print "   Copyright 2012-2016 (c) Unreal Mojo, by Cyril Murzin"
 	print "                           <<...a bit more than expected>>"
 	print " Portions acknowledged from"
 	print "   mergepbx / ASCII plist access; copyright (c) Simon Wagner"
@@ -135,9 +135,12 @@ def main():
 			fin = None
 
 			try:
-				pbxproj = plistReader(path + "/project.pbxproj").read()
-				if pbxproj == None:
-					raise Exception("corrupted project")
+				try:
+					pbxproj = plistReader(path + "/project.pbxproj").read()
+					if pbxproj == None:
+						raise Exception("corrupted project")
+				except Exception, e:
+					raise Exception("no project file")
 
 				pathdir = os.path.dirname(path)
 				if len(pathdir) == 0:
@@ -145,9 +148,9 @@ def main():
 
 				project = pbx.pbx(pbxproj, pathdir)
 
-				print "==============================================================================="
+				print '=' * 79
 				print "Verifying project %s" % path
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 
 				if checkIntegrity and not verify_missings.verify(project, verbose, tree = checkIntegrityTree):
 					print "%sIntegrity check failed" % prefix
@@ -155,17 +158,17 @@ def main():
 					print "%sProject is intact" % prefix
 
 					if checkImages:
-						print "==============================================================================="
+						print '=' * 79
 						verify_images.verify(project, verbose, usage = checkImagesMap, bundles = checkImagesBundles)
 
 					if checkStrings:
-						print "==============================================================================="
+						print '=' * 79
 						if checkStringsClang:
 							verify_strings_clang.verify(project, verbose, localizers = checkStringsLocalizers, usage = checkStringsMap, notlocalized = checkStringsNonLocalized)
 						else:
 							verify_strings.verify(project, verbose, localizers = checkStringsLocalizers, usage = checkStringsMap, notlocalized = checkStringsNonLocalized)
 
-				print "==============================================================================="
+				print '=' * 79
 
 			except Exception, e:
 				print "%sIntegrity check failed: %s" % (prefix, e.message)

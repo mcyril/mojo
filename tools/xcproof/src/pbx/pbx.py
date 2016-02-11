@@ -1,4 +1,4 @@
-# 2012-2014 (c) Unreal Mojo
+# 2012-2016 (c) Unreal Mojo
 # by Cyril Murzin
 
 from verify import verify_base
@@ -113,7 +113,7 @@ class pbx(object):
 		name, path = self.obtain_namepath(file)
 		fullpath, check = self.reinterpret_paths(file, fullpath, path, level)
 
-		status = verify_base.SKIP
+		status = verify_base.STATE_SKIP
 
 		self.nfilesprocessed += 1
 
@@ -121,10 +121,11 @@ class pbx(object):
 			self.nfileschecked += 1
 
 			if self.callback.process(key, parentkeys, file, fullpath):
-				status = verify_base.OK
+				status = verify_base.STATE_OK
 			else:
-				status = verify_base.FAIL
+				status = verify_base.STATE_FAIL
 
+		self.callback.progress(verify_base.PROGRESS_INCS, 1)
 		self.callback.log(name, fullpath, level, status)
 
 	#
@@ -140,7 +141,7 @@ class pbx(object):
 			name, path = self.obtain_namepath(group)
 			fullpath, check = self.reinterpret_paths(group, fullpath, path, level)
 
-			self.callback.log(name, fullpath, level, verify_base.FOLDER)
+			self.callback.log(name, fullpath, level, verify_base.STATE_FOLDER)
 
 			if 'children' in group:
 				for child in group['children']:
@@ -165,7 +166,9 @@ class pbx(object):
 		self.callback = callback		# callback class
 
 		# walk source group tree
+		self.callback.progress(verify_base.PROGRESS_INIT, len(self.files))
 		self.ckeck_group_deep(self.objects[self.project]['mainGroup'], [], self.srcroot, 0)
+		self.callback.progress(verify_base.PROGRESS_DONE, 0)
 
 		self.ok = self.callback.ok()
 

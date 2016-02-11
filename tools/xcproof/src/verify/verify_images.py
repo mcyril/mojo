@@ -1,4 +1,4 @@
-# 2012-2014 (c) Unreal Mojo
+# 2012-2016 (c) Unreal Mojo
 # by Cyril Murzin
 
 from pbx import pbx
@@ -143,6 +143,7 @@ class verify_images(verify_base.verify_base):
 		objcstrpat = re.compile(r"@\"(([^\"\\]|\\.)*)\"")
 
 		for source in self.sources:
+			verify_base.verify_base.progress(self, verify_base.PROGRESS_INCS, 1)
 			fin = codecs.open(source['path'], "rU", encoding = pbx._pbx_file_encoding(source))
 			try:
 				nline = 1
@@ -171,8 +172,9 @@ class verify_images(verify_base.verify_base):
 	def _postprocess_xibs(self):
 
 		for xib in self.xibs:
+			verify_base.verify_base.progress(self, verify_base.PROGRESS_INCS, 1)
 			xibdoc = minidom.parse(xib['path'])
-			
+
 			xibstrings = xibdoc.getElementsByTagName("string")
 			for xibstring in xibstrings:
 				if xibstring.hasAttribute("key") and xibstring.attributes['key'].value == "NSResourceName":
@@ -186,7 +188,7 @@ class verify_images(verify_base.verify_base):
 				if xibimage.hasAttribute("name"):
 					if xibimage.attributes['name'].value.endswith(self.extension):
 						self._postprocess_image(xibimage.attributes['name'].value[:-4], True, xib)
-			
+
 
 	def _postprocess_plist_item(self, item, plist):
 		if hasattr(item, "iteritems"):
@@ -209,6 +211,7 @@ class verify_images(verify_base.verify_base):
 	def _postprocess_plists(self):
 
 		for plist in self.plists:
+			verify_base.verify_base.progress(self, verify_base.PROGRESS_INCS, 1)
 			root = None
 
 			try:
@@ -226,6 +229,7 @@ class verify_images(verify_base.verify_base):
 		htmlsrcpat = re.compile(r"src=[\"'](([^\"\\]|\\.)*)[\"']")
 
 		for html in self.htmls:
+			verify_base.verify_base.progress(self, verify_base.PROGRESS_INCS, 1)
 			fin = codecs.open(html['path'], "rU", encoding = pbx._pbx_file_encoding(html))
 			try:
 				htmlstr = fin.read()
@@ -254,7 +258,10 @@ class verify_images(verify_base.verify_base):
 		self.__imagesmap = {}
 		self.__missings = {}
 
+		verify_base.verify_base.progress(self, verify_base.PROGRESS_INIT, len(self.images) + len(self.sources) + len(self.xibs) + len(self.plists) + len(self.htmls))
+
 		for image in self.images:
+			verify_base.verify_base.progress(self, verify_base.PROGRESS_INCS, 1)
 			if image['bundled']:
 				self.__imagesmap[image['file']['path']] = dict(image.items() + [('usage', [])])
 			else:
@@ -272,9 +279,11 @@ class verify_images(verify_base.verify_base):
 		# fill images usage in html files
 		self._postprocess_htmls()
 
+		verify_base.verify_base.progress(self, verify_base.PROGRESS_DONE, 0)
+
 		if self.showusage:
 			print "[PROBABLY] Usage of image files(%s) statistics" % self.extension
-			print "-------------------------------------------------------------------------------"
+			print '-' * 79
 
 		orphanes = []
 
@@ -302,9 +311,9 @@ class verify_images(verify_base.verify_base):
 		if len(orphanes) > 0:
 
 			if self.showusage:
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 			print "[PROBABLY] Orphan image files(%s)" % self.extension
-			print "-------------------------------------------------------------------------------"
+			print '-' * 79
 
 			for orphan in orphanes:
 				if self.verbose == 0:
@@ -318,9 +327,9 @@ class verify_images(verify_base.verify_base):
 		if len(self.__missings) > 0:
 
 			if self.showusage or len(orphanes) > 0:
-				print "-------------------------------------------------------------------------------"
+				print '-' * 79
 			print "[PROBABLY] Missing image files(%s)" % self.extension
-			print "-------------------------------------------------------------------------------"
+			print '-' * 79
 
 			for mkey in sorted(self.__missings):
 				print mkey

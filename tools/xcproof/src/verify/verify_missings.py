@@ -1,4 +1,4 @@
-# 2012-2014 (c) Unreal Mojo
+# 2012-2016 (c) Unreal Mojo
 # by Cyril Murzin
 
 from verify import verify_base
@@ -42,6 +42,13 @@ class verify_missing(verify_base.verify_base):
 			return False
 
 	#
+	# show progress
+	#
+	def progress(self, state, value):
+		if not self.showtree:
+			verify_base.verify_base.progress(self, state, value)
+
+	#
 	# log progress
 	#
 	def log(self, name, fullpath, level, stcode):
@@ -55,7 +62,7 @@ class verify_missing(verify_base.verify_base):
 		verify_base.verify_base.postprocess(self)
 
 		if self.showtree:
-			print "-------------------------------------------------------------------------------"
+			print '-' * 79
 		print "* Files processed total: %d" % self.project.nfilesprocessed
 		print "* Files verified:        %d" % self.project.nfileschecked
 		print "* Files verify failed:   %d" % len(self.missing)

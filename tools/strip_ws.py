@@ -1,6 +1,6 @@
 #!/usr/bin/python -B
 
-# 2011-2017 (c) Unreal Mojo
+# 2011-2015, 2017 (c) Unreal Mojo
 # by Cyril Murzin
 
 #
@@ -74,8 +74,8 @@ def process_dir(path):
 def usage():
 	print " ----------------------------------------------------------------------------------"
 	print " Source Code Whitespaces Cleaner v%s" % STRIP_WS_VERSION
-	print " Copyright 2011-2013 (c) Unreal Mojo, by Cyril Murzin"
-	print "                         <<...a bit more than expected>>"
+	print " Copyright 2011-2015, 2017 (c) Unreal Mojo, by Cyril Murzin"
+	print "                               <<...a bit more than expected>>"
 	print " ----------------------------------------------------------------------------------"
 	print " Usage: python %s [-a|-f|-h] path" % sys.argv[0]
 	print " ----------------------------------------------------------------------------------"
